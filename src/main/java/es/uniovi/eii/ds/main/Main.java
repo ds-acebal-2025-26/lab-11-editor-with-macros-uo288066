@@ -1,14 +1,27 @@
 package es.uniovi.eii.ds.main;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
+import es.uniovi.eii.ds.commands.*;
+import es.uniovi.eii.ds.commands.Record;
+import es.uniovi.eii.ds.macros.*;
 public class Main {
 
     BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 	
 	// Represents the document of the editor.
 	StringBuilder text = new StringBuilder();
+
+	// commands
+	HashMap<String, Command> commands = new HashMap<String, Command>();
+
+	// macros
+	MacroHandler mh = new MacroHandler();
+	
 
     public static void main(String[] args) {
         new Main().run();
@@ -19,88 +32,55 @@ public class Main {
 		drawLogo();
 		showHelp();
 
+		registerCommands();
+
 		while (true) {
 			UserCommand command = promptUser();
 			String[] args = command.args;
 
-			switch (command.name) {
-				case "open" -> open(args);
-				case "insert" -> { 
-					for (String word : args) {
-						text.append(" ").append(word);
-					}
-				}
-				case "delete" -> {
-					int indexOfLastWord = text.toString().trim().lastIndexOf(" ");
-					if (indexOfLastWord == -1)
-						text = new StringBuilder("");
-					else
-						text.setLength(indexOfLastWord);
-				}
-				case "replace" -> replace(args);
-				case "help" -> showHelp();
-				case "record" -> {
-					// String macroName = args[0];
-					// ...
-				}
-				case "stop" -> { 
-					// ...
-				}
-				case "execute" -> {
-					// String macroName = args[0];
-					// ...
-				}
-				default -> {
-					System.out.println("Unknown command");
-					continue;
-				}
+			if (command.name.equals("help")){
+				showHelp();
+				continue;
+			}
+
+			Command cmd = commands.get(command.name);
+			if (cmd != null) {
+				cmd.setText(text);
+				cmd.execute(args);
+				text = cmd.getText();
+			} else {
+				System.out.println("Unknown command");
+				continue;
+			}
+
+			if (mh.isRecording() && cmd.isRecordable()) {
+				mh.recordCommand(cmd, args);
 			}
 
 			System.out.println(text);
 		}
 	}
 
+	private void registerCommands() {
+		commands.put("insert", new Insert(text));
+		commands.put("delete", new Delete(text));
+		commands.put("replace", new Replace(text));
+		commands.put("record", new Record(mh));
+		commands.put("stop", new Stop(mh));
+		commands.put("execute", new Execute(mh, text));
+		commands.put("open", new Open());
+	}
+
+
 	//$-- Some individual user commands that do a bit more work ---------------
 
-	private void open(String[] args) {
-		if (!checkArguments(args, 1, "open <file>"))
-			return;
-		try {
-			String filename = args[0];
-			text = new StringBuilder(readFile(filename));
-		} catch (Exception e) {
-			System.out.println("Document could not be opened");
-		}
-	}
-
-	private String readFile(String filename) {
-		InputStream in = getClass().getResourceAsStream("/" + filename);
-		if (in == null)
-			throw new IllegalArgumentException("File not found: " + filename);
-
-		try (BufferedReader input = new BufferedReader(new InputStreamReader(in))) {
-			StringBuilder result = new StringBuilder();
-			String line;
-			boolean firstLine = true;
-			while ((line = input.readLine()) != null) {
-				if (!firstLine)
-					result.append(System.lineSeparator());
-				result.append(line);
-				firstLine = false;
-			}
-			return result.toString();
-		} catch (IOException e) {
-			throw new UncheckedIOException(e);
-		}
-	}
-
-	private void replace(String[] args) {
-		if (!checkArguments(args, 2, "replace <find> <replace>"))
-			return;
-		String find = args[0];
-		String replace = args[1];
-		text = new StringBuilder(text.toString().replace(find, replace));
-	}
+	// private void replace(String[] args) {
+	// 	if (!checkArguments(args, 2, "replace <find> <replace>"))
+	// 		return;
+	// 	String find = args[0];
+	// 	String replace = args[1];
+	// 	text = new StringBuilder(text.toString().replace(find, replace));
+	// }
 
 	//$-- Auxiliary methods ---------------------------------------------------
 

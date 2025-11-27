@@ -1,8 +1,7 @@
 # Patterns Used
 
-__Student__: ___Your name and UO here________________________________________
-
-This is just an example, taken from the slides, to be used as a template.
+__Student__: Olga Alonso Grela UO288066
+<br>This is just an example, taken from the slides, to be used as a template.
 Make sure you update this file to reflect the actual pattern or patterns
 used and its correspondence with the specific classes, interfaces and relevant
 methods and attributes of your solution.
